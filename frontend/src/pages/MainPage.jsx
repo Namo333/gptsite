@@ -9,7 +9,7 @@ const MainPage = () => {
         </header>
         <div className="w-full mx-auto max-w-screen-xl py-10 px-4 gap-10 flex flex-col">
             <section className="mt-[100px]">
-                <h1 className="text-[110px] text-center font-bold">Chat GPT Redesign</h1>
+                <h1 className="text-[110px] text-center font-bold">Chat GPT from <span className="text-blue-500">Namo</span></h1>
                 <Forma />
             </section>
         </div>
