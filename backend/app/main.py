@@ -2,34 +2,31 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import openai
 import os
 import json
 import time
+from transformers import pipeline
 
 app = FastAPI()
 
-# Настройка CORS
 origins = [
-    "http://localhost:5173",  # Добавьте URL вашего фронтенда (или "http://127.0.0.1:5173" если используется этот адрес)
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Разрешенные источники
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Разрешаем все методы (GET, POST и т.д.)
-    allow_headers=["*"],  # Разрешаем все заголовки
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Установите ваш ключ OpenAI API
-openai.api_key = 'sk-abcdef1234567890abcdef1234567890abcdef12'
+gpt_model = pipeline('text-generation', model='bigscience/bloom-560m')
 
 class PromptRequest(BaseModel):
     prompt: str
 
-# Функция для обработки промта
 def process_prompt(prompt: str) -> dict:
     unx_time = int(time.time())
     os.makedirs(f"./data/{unx_time}/json/", exist_ok=True)
@@ -41,12 +38,10 @@ def process_prompt(prompt: str) -> dict:
         json.dump({"title": unx_time, "chat": conversation_history}, file, indent=4, ensure_ascii=False)
 
     try:
-        # Запрашиваем ответ от GPT-3.5 через OpenAI API
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=conversation_history,
-        )
-        bot_response_text = response['choices'][0]['message']['content']
+        # Генерируем ответ с помощью модели BLOOM
+        bot_response = gpt_model(prompt, max_length=200, num_return_sequences=1, truncation=True)  # Добавляем truncation=True
+        bot_response_text = bot_response[0]['generated_text'].strip()  # Удаляем лишние пробелы
+
     except Exception as e:
         bot_response_text = "Извините, произошла ошибка."
 
@@ -57,6 +52,7 @@ def process_prompt(prompt: str) -> dict:
         json.dump({"title": unx_time, "chat": conversation_history}, file, indent=4, ensure_ascii=False)
 
     return {"id": unx_time, "response": bot_response_text}
+
 
 # Маршрут для обработки промта
 @app.post("/process_prompt")
